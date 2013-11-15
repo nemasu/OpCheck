@@ -1,0 +1,98 @@
+#!/bin/bash
+
+TMPFILE=/tmp/x86check.tmp
+
+if [ ! -e `which objdump` ];
+then
+	echo "Error: x86check needs objdump."
+	exit 1
+fi
+
+touch $TMPFILE
+if [ "$?" != "0" ];
+then
+	echo "Error: /tmp needs to be writable"
+	exit 1
+fi
+
+function DisplayHelp
+{
+	echo "Usage: x86check <binary path>"
+}
+
+if [ -z "$1" ] || [ "--help" == "$1" ] || [ "-h" == "$1" ] || [ -n "$2" ];
+then
+	DisplayHelp
+	exit 1
+fi
+
+OD=`which objdump`
+ISX86=`$OD -x $1 2>/dev/null | grep architecture | grep i386 | wc -l`
+if [ "$ISX86" == "0" ];
+then
+	echo "Error: Not an x86 binary"
+	exit 1
+fi
+
+PENTIUM=('cpuid' 'cmpxchg8b' 'rdmsr' 'rdtsc' 'wrmsr' 'rsm')
+PENTIUMMMX=('rdpmc' 'emms' 'movd' 'movq' 'packssdw' 'packsswb' 'packuswb' 'paddb' 'paddd' 'paddsb' 'paddsw' 'paddusb' 'paddusw' 'paddw' 'pand' 'pandn' 'pcmpeqb' 'pcmpeqd' 'pcmpeqw' 'pcmpgtb' 'pcmpgtd' 'pcmpgtw' 'pmaddwd' 'pmulhw' 'pmullw' 'por' 'pslld' 'psllq' 'psllw' 'psrad' 'psraw' 'psrld' 'psrlq' 'psrlw' 'psubb' 'psubd' 'psubsb' 'psubsw' 'psubusb' 'psubusw' 'psubw' 'punpckhbw' 'punpckhdq' 'punpckhwd' 'punpcklbw' 'punpckldq' 'punpcklwd' 'pxor')
+AMDK6=('syscall' 'sysret')
+PENTIUMPRO=('cmova' 'cmovae' 'cmovb' 'cmovbe' 'cmovc' 'cmove' 'cmovg' 'cmovge' 'cmovl' 'cmovle' 'cmovna' 'cmovnae' 'cmovnb' 'cmovnbe' 'cmovnc' 'cmovne' 'cmovng' 'cmovnge' 'cmovnl' 'cmovnle' 'cmovno' 'cmovnp' 'cmovns' 'cmovnz' 'cmovo' 'cmovp' 'cmovpe' 'cmovpo' 'cmovs' 'cmovz'i 'sysenter' 'sysexit' 'ud2' 'fcmovb' 'fcmovbe' 'fcmove' 'fcmovnb' 'fcmovnbe' 'fcmovne' 'fcmovnu' 'fcmovu' 'fcomi' 'fcomip' 'fucomi' 'fucomip')
+SSE=('maskmovq' 'movntps' 'movntq' 'prefetch0' 'prefetch1' 'prefetch2' 'prefetchnta' 'sfence' 'fxrstor' 'fxsave' 'addps' 'addss' 'cmpps' 'cmpss' 'comiss' 'cvtpi2ps' 'cvtps2pi' 'cvtsi2ss' 'cvtss2si' 'cvttps2pi' 'cvttss2si' 'divps' 'divss' 'ldmxcsr' 'maxps' 'maxss' 'minps' 'minss' 'movaps' 'movhlps' 'movhps' 'movlhps' 'movlps' 'movmskps' 'movntps' 'movss' 'movups' 'mulps' 'mulss' 'rcpps' 'rcpss' 'rsqrtps' 'rsqrtss' 'shufps' 'sqrtps' 'sqrtss' 'stmxcsr' 'subps' 'subss' 'ucomiss' 'unpckhps' 'unpcklps' 'andnps' 'andps' 'orps' 'pavgb' 'pavgw' 'pextrw' 'pinsrw' 'pmaxsw' 'pmaxub' 'pminsw' 'pminub' 'pmovmskb' 'pmulhuw' 'psadbw' 'pshufw' 'xorps')
+SSE2=('clflush' 'lfence' 'maskmovdqu' 'mfence' 'movntdq' 'movnti' 'movntpd' 'pause' 'addpd' 'addsd' 'andnpd' 'andpd' 'cmppd' 'cmpsd*' 'comisd' 'cvtdq2pd' 'cvtdq2ps' 'cvtpd2dq' 'cvtpd2pi' 'cvtpd2ps' 'cvtpi2pd' 'cvtps2dq' 'cvtps2pd' 'cvtsd2si' 'cvtsd2ss' 'cvtsi2sd' 'cvtss2sd' 'cvttpd2dq' 'cvttpd2pi' 'cvttps2dq' 'cvttsd2si' 'divpd' 'divsd' 'maxpd' 'maxsd' 'minpd' 'minsd' 'movapd' 'movhpd' 'movlpd' 'movmskpd' 'movsd*' 'movupd' 'mulpd' 'mulsd' 'orpd' 'shufpd' 'sqrtpd' 'sqrtsd' 'subpd' 'subsd' 'ucomisd' 'unpckhpd' 'unpcklpd' 'xorpd' 'movdq2q' 'movdqa' 'movdqu' 'movq2dq' 'paddq' 'psubq' 'pmuludq' 'pshufhw' 'pshuflw' 'pshufd' 'pslldq' 'psrldq' 'punpckhqdq' 'punpcklqdq')
+SSE3=('lddqu' 'monitor' 'mwait' 'fisttp' 'addsubpd' 'addsubps' 'haddpd' 'haddps' 'hsubpd' 'hsubps' 'movddup' 'movshdup' 'movsldup' 'psignw' 'psignd' 'psignb' 'pshufb' 'pmulhrsw' 'pmaddubsw' 'phsubw' 'phsubsw' 'phsubd' 'phaddw' 'phaddsw' 'phaddd' 'palignr' 'pabsw' 'pabsd' 'pabsb')
+SSE41=('mpsadbw' 'phminposuw' 'pmulld' 'pmuldq' 'dpps' 'dppd' 'blendps' 'blendpd' 'blendvps' 'blendvpd' 'pblendvb' 'pblendw' 'pminsb' 'pmaxsb' 'pminuw' 'pmaxuw' 'pminud' 'pmaxud' 'pminsd' 'pmaxsd' 'roundps' 'roundss' 'roundpd' 'roundsd' 'insertps' 'pinsrb' 'pinsrd/pinsrq' 'extractps' 'pextrb' 'pextrw' 'pextrd/pextrq' 'pmovsxbw' 'pmovzxbw' 'pmovsxbd' 'pmovzxbd' 'pmovsxbq' 'pmovzxbq' 'pmovsxwd' 'pmovzxwd' 'pmovsxwq' 'pmovzxwq' 'pmovsxdq' 'pmovzxdq' 'ptest' 'pcmpeqq' 'packusdw' 'movntdqa')
+SSE4A=('lzcnt' 'popcnt' 'extrq' 'insertq' 'movntsd' 'movntss')
+SSE42=('crc32' 'pcmpestri' 'pcmpestrm' 'pcmpistri' 'pcmpistrm' 'pcmpgtq')
+AVXFMA=('vfmaddpd' 'vfmaddps' 'vfmaddsd' 'vfmaddss' 'vfmaddsubpd' 'vfmaddsubps' 'vfmsubaddpd' 'vfmsubaddps' 'vfmsubpd' 'vfmsubps' 'vfmsubsd' 'vfmsubss' 'vfnmaddpd' 'vfnmaddps' 'vfnmaddsd' 'vfnmaddss' 'vfnmsubpd' 'vfnmsubps' 'vfnmsubsd' 'vfnmsubss')
+AES=('aesenc' 'aesenclast' 'aesdec' 'aesdeclast' 'aeskeygenassist' 'aesimc')
+X86_64=('cdqe' 'cqo' 'cmpsq' 'cmpxchg16b' 'iretq' 'jrcxz' 'lodsq' 'movsxd' 'popfq' 'pushfq' 'rdtscp' 'scasq' 'stosq' 'swapgs')
+AMDV=('clgi' 'skinit' 'stgi' 'vmload' 'vmmcall' 'vmrun' 'vmsave')
+VTX=('vmptrld' 'vmptrst' 'vmclear' 'vmread' 'vmwrite' 'vmcall' 'vmlaunch' 'vmresume' 'vmxoff' 'vmxon')
+AMD3DNOW=('femms' 'pavgusb' 'pf2id' 'pfacc' 'pfadd' 'pfcmpeq' 'pfcmpge' 'pfcmpgt' 'pfmax' 'pfmin' 'pfmul' 'pfrcp' 'pfrcpit1' 'pfrcpit2' 'pfrsqit1' 'pfrsqrt' 'pfsub' 'pfsubr' 'pi2fd' 'pmulhrw' 'prefetch' 'prefetchw')
+AMD3DNOWPLUS=('pf2iw' 'pfnacc' 'pfpnacc' 'pi2fw' 'pswapd' 'pfrsqrtv' 'pfrcpv')
+
+echo "Scanning .... "
+echo ""
+$OD -d $1 > $TMPFILE
+
+if [ "0" != "$?" ];
+then
+	echo "Unknown Error"
+	exit 1
+fi
+
+function CheckOpCodes
+{
+	LIST=$1
+	NAME=$2
+	for i in ${LIST[@]};
+	do
+		grep -q -m1 -e "[[:space:]]$i[[:space:]]" $TMPFILE
+		if [ "$?" == "0" ];
+		then
+			echo "$NAME opcode found ($i)."
+			break
+		fi
+	done
+}
+
+CheckOpCodes $PENTIUM "Intel Pentium"
+CheckOpCodes $PENTIUMMMX "Pentium MMX"
+CheckOpCodes $AMDK6 "AMD K6"
+CheckOpCodes $PENTIUMPRO "Pentium Pro"
+CheckOpCodes $SSE "Intel SSE"
+CheckOpCodes $SSE2 "Intel SSE 2"
+CheckOpCodes $SSE3 "Intel SSE 3"
+CheckOpCodes $SSE41 "Intel SSE 4.1"
+CheckOpCodes $SSE4A "Intel SSE 4a"
+CheckOpCodes $SSE42 "Intel SSE 4.2"
+CheckOpCodes $AVXFMA "Intel AVX FMA"
+CheckOpCodes $X86_64 "x86_64"
+CheckOpCodes $AMDV "AMD-V"
+CheckOpCodes $VTX "Intel VT-x"
+CheckOpCodes $AMD3DNOW "AMD 3DNow!"
+CheckOpCodes $AMD3DNOWPLUS "AMD 3DNow!+"
+
+rm $TMPFILE
+echo ""
