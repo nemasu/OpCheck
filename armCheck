@@ -1,0 +1,76 @@
+#!/bin/bash
+
+TMPFILE=/tmp/armcheck.tmp
+
+if [ ! -e `which objdump` ];
+then
+echo "Error: armCheck needs objdump."
+exit 1
+fi
+
+touch $TMPFILE
+if [ "$?" != "0" ];
+then
+echo "Error: /tmp needs to be writable"
+exit 1
+fi
+
+function DisplayHelp
+{
+	echo "Usage: armCheck <binary path>"
+}
+
+if [ -z "$1" ] || [ "--help" == "$1" ] || [ "-h" == "$1" ] || [ -n "$2" ];
+then
+DisplayHelp
+exit 1
+fi
+
+OD=`which objdump`
+ISX=`$OD -x $1 2>/dev/null | grep architecture | grep arm | wc -l`
+if [ "$ISX" == "0" ];
+then
+echo "Error: Not an arm binary"
+exit 1
+fi
+
+INTELWIRELESS=('tandc' 'tbcst' 'textrc' 'textrm' 'tinsr' 'tmcr' 'tmcrr' 'tmia' 'tmiaph' 'tmovmsk' 'tmrc' 'tmrrc' 'torc' 'torvsc' 'wabs' 'wabsdiff' 'wacc' 'wadd' 'waddbhus' 'waddsubhx' 'waligni' 'walignr' 'wand' 'wavg2' 'wavg4' 'wcmpeq' 'wcmpgt' 'wldr' 'wldrd' 'wldrw' 'wmac' 'wmadd' 'wmax' 'wmerge' 'wmia' 'wmiaw' 'wmin' 'wmul' 'wmulwl' 'wmulwsm' 'wmulwum' 'wor' 'wpack' 'wqmia' 'wqmulm' 'wqmulwm' 'wror' 'wsad' 'wshufh' 'wsll' 'wsra' 'wsrl' 'wstr' 'wstrd' 'wstrw' 'wsub' 'wsubaddhx' 'wunpckeh' 'wunpckel' 'wunpckih' 'wunpckil' 'wxor')
+FPA=('abs' 'acs' 'adf' 'asn' 'atn' 'cmf' 'cmfe' 'cnf' 'cnfe' 'cos' 'dvf' 'exp' 'fdv' 'fix' 'flt' 'fml' 'frd' 'ldf' 'lfm' 'lgn' 'log' 'mnf' 'muf' 'mvf' 'nrm' 'pol' 'pow' 'rdf' 'rfc' 'rfs' 'rmf' 'rnd' 'rpw' 'rsf' 'sfm' 'sin' 'sqt' 'stf' 'suf' 'tan' 'urd' 'wfc' 'wfs')
+NEON=('v' 'vaba' 'vabal' 'vabd' 'vabdl' 'vabs' 'vacge' 'vacgt' 'vadd' 'vaddhn' 'vaddl' 'vaddw' 'vand' 'vbic' 'vbif' 'vbit' 'vbsl' 'vceq' 'vcge' 'vcgt' 'vcle' 'vcls' 'vclt' 'vclz' 'vcnt' 'vcvt' 'vdup' 'veor' 'vext' 'vhadd' 'vhsub' 'vld1' 'vld2' 'vld3' 'vld4' 'vldmdb' 'vldmia' 'vldr' 'vmax' 'vmin' 'vmla' 'vmlal' 'vmls' 'vmlsl' 'vmov' 'vmovl' 'vmovn' 'vmul' 'vmull' 'vmvn' 'vneg' 'vorn' 'vorr' 'vpadal' 'vpadd' 'vpaddl' 'vpmax' 'vpmin' 'vqabs' 'vqadd' 'vqdmlal' 'vqdmlsl' 'vqdmulh' 'vqdmull' 'vqmovn' 'vqmovun' 'vqneg' 'vqrdmulh' 'vqrshl' 'vqrshrn' 'vqrshrun' 'vqshl' 'vqshlu' 'vqshrn' 'vqshrun' 'vqsub' 'vraddhn' 'vrecpe' 'vrecps' 'vrev16' 'vrev32' 'vrev64' 'vrhadd' 'vrshl' 'vrshr' 'vrshrn' 'vrsqrte' 'vrsqrts' 'vrsra' 'vrsubhn' 'vshl' 'vshll' 'vshr' 'vshrn' 'vsli' 'vsra' 'vsri' 'vstmdb' 'vstmia' 'vstr' 'vsub' 'vsubhn' 'vsubl' 'vsubw' 'vswp' 'vtbl' 'vtbx' 'vtrn' 'vtst' 'vuzp' 'vzip')
+VFP=('f' 'fabsd' 'fabss' 'faddd' 'fadds' 'fcmp' 'fconstd' 'fconsts' 'fcpyd' 'fcpys' 'fcvtds' 'fcvtsd' 'fdivd' 'fdivs' 'fldd' 'fldmdb' 'fldmdbs' 'fldmia' 'fldmias' 'flds' 'fmacd' 'fmacs' 'fmdhr' 'fmdlr' 'fmdrr' 'fmrdh' 'fmrdl' 'fmrrd' 'fmrrs' 'fmrs' 'fmrx' 'fmscd' 'fmscs' 'fmsr' 'fmsrr' 'fmstat' 'fmuld' 'fmuls' 'fmxr' 'fnegd' 'fnegs' 'fnmacd' 'fnmacs' 'fnmscd' 'fnmscs' 'fnmuld' 'fnmuls' 'fsitod' 'fsitos' 'fsqrtd' 'fsqrts' 'fstd' 'fstmdb' 'fstmdbs' 'fstmia' 'fstmias' 'fsts' 'fsubd' 'fsubs' 'fto' 'fuitod' 'fuitos')
+CIRRUS=('cfabs32' 'cfabs64' 'cfabsd' 'cfabss' 'cfadd32' 'cfadd64' 'cfaddd' 'cfadds' 'cfcmp32' 'cfcmp64' 'cfcmpd' 'cfcmps' 'cfcpyd' 'cfcpys' 'cfcvt32d' 'cfcvt32s' 'cfcvt64d' 'cfcvt64s' 'cfcvtd32' 'cfcvtds' 'cfcvts32' 'cfcvtsd' 'cfldr32' 'cfldr64' 'cfldrd' 'cfldrs' 'cfmac32' 'cfmadd32' 'cfmadda32' 'cfmsc32' 'cfmsub32' 'cfmsuba32' 'cfmul32' 'cfmul64' 'cfmuld' 'cfmuls' 'cfmv32a' 'cfmv32ah' 'cfmv32al' 'cfmv32am' 'cfmv32sc' 'cfmv64a' 'cfmv64hr' 'cfmv64lr' 'cfmva32' 'cfmva64' 'cfmvah32' 'cfmval32' 'cfmvam32' 'cfmvdhr' 'cfmvdlr' 'cfmvr64h' 'cfmvr64l' 'cfmvrdh' 'cfmvrdl' 'cfmvrs' 'cfmvsc32' 'cfmvsr' 'cfneg32' 'cfneg64' 'cfnegd' 'cfnegs' 'cfrshl32' 'cfrshl64' 'cfsh32' 'cfsh64' 'cfstr32' 'cfstr64' 'cfstrd' 'cfstrs' 'cfsub32' 'cfsub64' 'cfsubd' 'cfsubs' 'cftruncd32' 'cftruncs32')
+echo "Scanning .... "
+echo ""
+$OD -d $1 > $TMPFILE
+
+if [ "0" != "$?" ];
+then
+	echo "Unknown Error"
+	exit 1
+fi
+
+function CheckOpCodes
+{
+	LIST=$1
+	NAME=$2
+	for i in ${LIST[@]};
+	do
+		grep -q -m1 -e "[[:space:]]$i[[:space:]]" $TMPFILE
+		if [ "$?" == "0" ];
+		then
+			echo "$NAME opcode found ($i)."
+			break
+		fi
+	done
+}
+
+CheckOpCodes $INTELWIRELESS "Intel Wireless MMX"
+CheckOpCodes $FPA "Floating point coprocessor (FPA)"
+CheckOpCodes $NEON "NEON"
+CheckOpCodes $VFP "Floating point coprocessor (VFP)"
+CheckOpCodes $CIRRUS "Cirrus coprocessor"
+
+
+
+rm $TMPFILE
+echo ""
