@@ -64,35 +64,68 @@ fi
 
 function CheckOpCodes
 {
-	LIST=$1
-	NAME=$2
-	for i in ${LIST[@]};
-	do
-		grep -q -m1 -e "[[:space:]]$i[[:space:]]" $TMPFILE
-		if [ "$?" == "0" ];
-		then
-			echo "$NAME opcode found ($i)."
-			break
-		fi
-	done
+
+    for i in ${@};
+    do
+        RET=`grep -m1 -e "[[:space:]]$i[[:space:]]" $TMPFILE | wc -l`
+        if [ $RET -ne 0 ];
+        then
+            echo "found ($i)."
+			echo
+            return
+        fi
+    done
+    echo "nothing."
+	echo
 }
 
-CheckOpCodes $PENTIUM "Intel Pentium"
-CheckOpCodes $PENTIUMMMX "Pentium MMX"
-CheckOpCodes $AMDK6 "AMD K6"
-CheckOpCodes $PENTIUMPRO "Pentium Pro"
-CheckOpCodes $SSE "Intel SSE"
-CheckOpCodes $SSE2 "Intel SSE 2"
-CheckOpCodes $SSE3 "Intel SSE 3"
-CheckOpCodes $SSE41 "Intel SSE 4.1"
-CheckOpCodes $SSE4A "Intel SSE 4a"
-CheckOpCodes $SSE42 "Intel SSE 4.2"
-CheckOpCodes $AVXFMA "Intel AVX FMA"
-CheckOpCodes $X86_64 "x86_64"
-CheckOpCodes $AMDV "AMD-V"
-CheckOpCodes $VTX "Intel VT-x"
-CheckOpCodes $AMD3DNOW "AMD 3DNow!"
-CheckOpCodes $AMD3DNOWPLUS "AMD 3DNow!+"
+echo "Intel Pentium..."
+CheckOpCodes ${PENTIUM[@]}
+
+echo "Checking Pentium MMX..."
+CheckOpCodes ${PENTIUMMMX[@]}
+
+echo "Checking AMD K6..."
+CheckOpCodes ${AMDK6[@]}
+
+echo "Checking Pentium Pro..."
+CheckOpCodes ${PENTIUMPRO[@]}
+
+echo "Checking Intel SSE..."
+CheckOpCodes ${SSE[@]}
+
+echo "Checking Intel SSE 2..."
+CheckOpCodes ${SSE2[@]}
+
+echo "Checking Intel SSE 3..."
+CheckOpCodes ${SSE3[@]}
+
+echo "Checking Intel SSE 4.1..."
+CheckOpCodes ${SSE41[@]}
+
+echo "Checking Intel SSE 4a..."
+CheckOpCodes ${SSE4A[@]}
+
+echo "Checking Intel SSE 4.2..."
+CheckOpCodes ${SSE42[@]}
+
+echo "Checking Intel AVX FMA..."
+CheckOpCodes ${AVXFMA[@]}
+
+echo "Checking x86_64..."
+CheckOpCodes ${X86_64[@]}
+
+echo "Checking AMD-V..."
+CheckOpCodes ${AMDV[@]}
+
+echo "Checking Intel VT-x..."
+CheckOpCodes ${VTX[@]}
+
+echo "Checking AMD 3DNow!..."
+CheckOpCodes ${AMD3DNOW[@]}
+
+echo "Checking AMD 3DNow!+..."
+CheckOpCodes ${AMD3DNOWPLUS[@]}
 
 rm $TMPFILE
 echo ""

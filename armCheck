@@ -51,25 +51,33 @@ fi
 
 function CheckOpCodes
 {
-	LIST=$1
-	NAME=$2
-	for i in ${LIST[@]};
+	
+	for i in ${@};
 	do
-		grep -q -m1 -e "[[:space:]]$i[[:space:]]" $TMPFILE
-		if [ "$?" == "0" ];
+		RET=`grep -m1 -e "[[:space:]]$i[[:space:]]" $TMPFILE | wc -l`
+		if [ $RET -ne 0 ];
 		then
-			echo "$NAME opcode found ($i)."
-			break
+			echo "found ($i)."
+			return
 		fi
 	done
+	echo "nothing."
 }
 
-CheckOpCodes $INTELWIRELESS "Intel Wireless MMX"
-CheckOpCodes $FPA "Floating point coprocessor (FPA)"
-CheckOpCodes $NEON "NEON"
-CheckOpCodes $VFP "Floating point coprocessor (VFP)"
-CheckOpCodes $CIRRUS "Cirrus coprocessor"
+echo -n "Checking Intel Wireless MMX..."
+CheckOpCodes ${INTELWIRELESS[@]}
 
+echo -n "Checking Floating point coprocessor (FPA)..."
+CheckOpCodes ${FPA[@]}
+
+echo -n "Checking NEON..."
+CheckOpCodes ${NEON[@]}
+
+echo -n "Checking Floating point coprocessor (VFP)..."
+CheckOpCodes ${VFP[@]}
+
+echo -n "Checking Cirrus coprocessor..."
+CheckOpCodes ${CIRRUS[@]}
 
 
 rm $TMPFILE
