@@ -20,6 +20,10 @@ Supported:
 * Intel VT-x
 * AMD 3DNow!
 * AMD 3DNow!+
+* ABM
+* BMI1
+* BMI2
+* TBM
 
 ####armCheck
 Scan binaries for various arm opcodes.
