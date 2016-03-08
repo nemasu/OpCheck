@@ -51,6 +51,10 @@ AMDV=('clgi' 'skinit' 'stgi' 'vmload' 'vmmcall' 'vmrun' 'vmsave')
 VTX=('vmptrld' 'vmptrst' 'vmclear' 'vmread' 'vmwrite' 'vmcall' 'vmlaunch' 'vmresume' 'vmxoff' 'vmxon')
 AMD3DNOW=('femms' 'pavgusb' 'pf2id' 'pfacc' 'pfadd' 'pfcmpeq' 'pfcmpge' 'pfcmpgt' 'pfmax' 'pfmin' 'pfmul' 'pfrcp' 'pfrcpit1' 'pfrcpit2' 'pfrsqit1' 'pfrsqrt' 'pfsub' 'pfsubr' 'pi2fd' 'pmulhrw' 'prefetch' 'prefetchw')
 AMD3DNOWPLUS=('pf2iw' 'pfnacc' 'pfpnacc' 'pi2fw' 'pswapd' 'pfrsqrtv' 'pfrcpv')
+ABM=('lzcnt' 'popcnt')
+BMI1=('andn' 'bextr' 'blsi' 'blsmsk' 'blsr' 'tzcnt')
+BMI2=('bzhi' 'mulx' 'pdep' 'pext' 'rorx' 'sarx' 'shrx' 'shlx')
+TBM=('bextr' 'blcfill' 'blci' 'blcic' 'blcmask' 'blcs' 'blcs' 'blsfill' 'blsic' 't1mskc' 'tzmsk')
 
 echo "Scanning .... "
 echo ""
@@ -67,15 +71,15 @@ function CheckOpCodes
 
     for i in ${@};
     do
-        RET=`grep -m1 -e "[[:space:]]$i[[:space:]]" $TMPFILE | wc -l`
-        if [ $RET -ne 0 ];
-        then
-            echo "found ($i)."
-			echo
-            return
-        fi
+		RET=`grep -m1 -e "[[:space:]]$i[[:space:]]" $TMPFILE | wc -l`
+		if [ $RET -ne 0 ];
+		then
+		echo "found ($i)."
+		echo
+		return
+	fi
     done
-    echo "nothing."
+	echo "nothing."
 	echo
 }
 
@@ -126,6 +130,18 @@ CheckOpCodes ${AMD3DNOW[@]}
 
 echo "Checking AMD 3DNow!+..."
 CheckOpCodes ${AMD3DNOWPLUS[@]}
+
+echo "Checking ABM..."
+CheckOpCodes ${ABM[@]}
+
+echo "Checking BMI1..."
+CheckOpCodes ${BMI1[@]}
+
+echo "Checking BMI2..."
+CheckOpCodes ${BMI2[@]}
+
+echo "Checking TBM..."
+CheckOpCodes ${TBM[@]}
 
 rm $TMPFILE
 echo ""
